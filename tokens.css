@@ -1,0 +1,35 @@
+/* RPT UI — tokens (colores, tipografía, medidas). Compartido por WorkOut y Nutrición.
+   Los nombres --t-* son los mismos que ya usa WorkOut 2.0 (palette.css). */
+@font-face{font-family:'Archivo';font-weight:400;font-display:swap;src:url(fonts/archivo-latin-400-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-weight:500;font-display:swap;src:url(fonts/archivo-latin-500-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-weight:600;font-display:swap;src:url(fonts/archivo-latin-600-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-weight:700;font-display:swap;src:url(fonts/archivo-latin-700-normal.woff2) format('woff2')}
+@font-face{font-family:'Archivo';font-weight:800;font-display:swap;src:url(fonts/archivo-latin-800-normal.woff2) format('woff2')}
+@font-face{font-family:ArchivoBlack;font-weight:400;font-display:swap;src:url(fonts/archivo-black-latin-400-normal.woff2) format('woff2')}
+
+:root{
+  /* Colores (azul noche y cian) */
+  --t-bg:#0d1117; --t-bg2:#11171f; --t-surface:#161d27; --t-surface2:#1b2430;
+  --t-chip:#212c3a; --t-line:#263242; --t-edge:#33435a;
+  --t-text:#e8eef4; --t-muted:#b2bfcc; --t-muted2:#8494a6; --t-muted3:#5b6b7e;
+  --t-accent:#34d1c4; --t-accent2:#5fe0d5; --t-ink:#06201d;
+  --t-accent-soft:#10302d; --t-accent-edge:#1f6460;
+  --t-good:#3fb26f; --t-good-bg:#122a1f; --t-good-fg:#80dba6; --t-good-edge:#225c3e;
+  --t-bad:#e0614f; --t-bad-bg:#2c1717; --t-bad-fg:#ff9d8f; --t-bad-edge:#64302b;
+  --t-chg:#f2a33a; --t-chg-bg:#2c2110; --t-chg-fg:#ffc47a;
+  --t-inf:#f2b84b; --t-inf-bg:#2a2312; --t-inf-fg:#ffd58a;
+
+  /* Los 4 niveles de intensidad (de menos a más) */
+  --lvl-1:#6fa8dc; --lvl-1-bg:#13202e;   /* Descanso */
+  --lvl-2:#3fb26f; --lvl-2-bg:#122a1f;   /* Baja */
+  --lvl-3:#f2b84b; --lvl-3-bg:#2a2312;   /* Media */
+  --lvl-4:#e0614f; --lvl-4-bg:#2c1717;   /* Alta */
+
+  /* Tipografía: grande y legible */
+  --font:'Archivo',system-ui,sans-serif; --font-title:ArchivoBlack,'Archivo',sans-serif;
+  --fs-base:18px; --fs-small:15px; --fs-label:14px; --fs-h1:30px; --fs-h2:24px; --fs-h3:20px;
+
+  /* Medidas */
+  --r-btn:14px; --r-card:20px; --r-field:12px; --tap:52px; --gap:14px; --pad:16px;
+  color-scheme:dark;
+}

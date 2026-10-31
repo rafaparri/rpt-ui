@@ -1,0 +1,95 @@
+/* RPT UI — componentes. Usa solo variables de tokens.css */
+*{box-sizing:border-box}
+html{font-size:var(--fs-base)}
+body{margin:0;background:var(--t-bg);color:var(--t-text);font-family:var(--font);font-synthesis:none;-webkit-font-smoothing:antialiased;line-height:1.4}
+h1,h2,h3{font-family:var(--font-title);font-weight:400;margin:0 0 8px;letter-spacing:0}
+h1{font-size:var(--fs-h1)} h2{font-size:var(--fs-h2)} h3{font-size:var(--fs-h3)}
+a{color:var(--t-accent2)}
+:focus-visible{outline:3px solid var(--t-accent2);outline-offset:2px}
+
+/* ---- Estructura de pantalla (igual en las dos apps) ---- */
+.app{max-width:560px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--t-bg)}
+.topbar{display:flex;align-items:center;gap:12px;padding:12px var(--pad);background:var(--t-bg2);border-bottom:1px solid var(--t-line);position:sticky;top:0;z-index:5}
+.topbar .brand{display:flex;align-items:center;gap:10px;font-family:var(--font-title);font-size:19px;flex:1;min-width:0}
+.appicon{width:38px;height:38px;border-radius:11px;background:var(--t-accent);color:var(--t-ink);display:grid;place-items:center;font-size:21px;flex:none}
+.topbar .user{background:none;border:1.5px solid var(--t-edge);color:var(--t-text);min-height:44px;padding:0 14px;border-radius:var(--r-btn);font:700 var(--fs-small) var(--font);cursor:pointer}
+.crumbs{padding:10px var(--pad) 0;color:var(--t-muted2);font-size:var(--fs-small)}
+.crumbs a{color:var(--t-muted);text-decoration:none;font-weight:600}
+.crumbs b{color:var(--t-text)}
+.content{flex:1;padding:var(--pad);display:flex;flex-direction:column;gap:var(--gap);padding-bottom:calc(var(--tap) + 40px)}
+.sub{color:var(--t-muted2);font-size:var(--fs-small);margin:0}
+
+/* Barra inferior: 3 a 4 secciones, la activa en cian */
+.bottomnav{position:sticky;bottom:0;display:flex;background:var(--t-bg2);border-top:1px solid var(--t-line);padding:6px 6px calc(6px + env(safe-area-inset-bottom))}
+.bottomnav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:0;color:var(--t-muted2);font:700 13px var(--font);padding:8px 4px;min-height:var(--tap);border-radius:12px;cursor:pointer}
+.bottomnav button .ico{font-size:22px;line-height:1}
+.bottomnav button[aria-current="page"]{color:var(--t-accent2);background:var(--t-accent-soft)}
+
+/* ---- Tarjetas y listas ---- */
+.card{background:var(--t-surface);border:1px solid var(--t-line);border-radius:var(--r-card);padding:var(--pad)}
+.card.accent{border:2px solid var(--t-accent)}
+.list{background:var(--t-surface);border:1px solid var(--t-line);border-radius:var(--r-card);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;padding:14px var(--pad);min-height:var(--tap);border-top:1px solid var(--t-line);cursor:pointer;background:none;border-left:0;border-right:0;border-bottom:0;width:100%;color:inherit;font:inherit;text-align:left}
+.list>.row:first-child{border-top:0}
+.row:hover{background:var(--t-surface2)}
+.row .grow{flex:1;min-width:0} .row .chev{color:var(--t-muted3);font-size:22px}
+.avatar{width:44px;height:44px;border-radius:14px;background:var(--t-chip);color:var(--t-accent2);display:grid;place-items:center;font-family:var(--font-title);flex:none}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{background:var(--t-surface2);border:1px solid var(--t-line);border-radius:16px;padding:12px 14px}
+.kpi .n{font-family:var(--font-title);font-size:28px;color:var(--t-accent2)} .kpi .l{color:var(--t-muted2);font-size:var(--fs-label);font-weight:600}
+
+/* ---- Botones ---- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:var(--tap);padding:0 20px;border:0;border-radius:var(--r-btn);background:var(--t-accent);color:var(--t-ink);font:800 var(--fs-base) var(--font);cursor:pointer;width:100%}
+.btn:hover{filter:brightness(1.08)}
+.btn.secondary{background:var(--t-surface2);color:var(--t-text);border:2px solid var(--t-edge)}
+.btn.danger{background:var(--t-bad);color:#fff}
+.btn.ghost{background:none;color:var(--t-accent2);border:2px solid var(--t-accent-edge)}
+.btn.small{min-height:44px;width:auto;font-size:var(--fs-small);padding:0 14px}
+.btn-row{display:flex;gap:10px} .btn-row .btn{flex:1}
+
+/* ---- Campos ---- */
+label.f{display:block;font-weight:700;font-size:var(--fs-label);letter-spacing:.06em;text-transform:uppercase;color:var(--t-muted);margin:0 0 6px}
+.field{margin-bottom:var(--gap)}
+input,select,textarea{width:100%;min-height:var(--tap);background:var(--t-bg2);color:var(--t-text);border:1.5px solid var(--t-edge);border-radius:var(--r-field);padding:0 14px;font:500 17px var(--font)}
+input::placeholder{color:var(--t-muted3)}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ---- Etiquetas y avisos ---- */
+.chip{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;background:var(--t-chip);color:var(--t-text);font-weight:700;font-size:var(--fs-label)}
+.notice{border-radius:14px;padding:12px 14px;border:1px solid;font-size:var(--fs-small)}
+.notice.info{background:var(--t-inf-bg);border-color:#5a4719;color:var(--t-inf-fg)}
+.notice.ok{background:var(--t-good-bg);border-color:var(--t-good-edge);color:var(--t-good-fg)}
+.notice.bad{background:var(--t-bad-bg);border-color:var(--t-bad-edge);color:var(--t-bad-fg)}
+
+/* ---- Selector de 4 niveles (intensidad): color + número + palabra ---- */
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.levels button{display:flex;flex-direction:column;align-items:center;gap:4px;min-height:64px;padding:8px 2px;border-radius:14px;border:2px solid var(--t-edge);background:var(--t-surface2);color:var(--t-muted);font:700 14px var(--font);cursor:pointer}
+.levels .bars{display:flex;gap:2px;align-items:flex-end;height:16px}
+.levels .bars i{width:5px;border-radius:2px;background:currentColor;opacity:.25}
+.levels .bars i:nth-child(1){height:6px}.levels .bars i:nth-child(2){height:9px}.levels .bars i:nth-child(3){height:12px}.levels .bars i:nth-child(4){height:16px}
+.levels button[data-l="1"][aria-pressed="true"]{border-color:var(--lvl-1);background:var(--lvl-1-bg);color:var(--lvl-1)}
+.levels button[data-l="2"][aria-pressed="true"]{border-color:var(--lvl-2);background:var(--lvl-2-bg);color:var(--lvl-2)}
+.levels button[data-l="3"][aria-pressed="true"]{border-color:var(--lvl-3);background:var(--lvl-3-bg);color:var(--lvl-3)}
+.levels button[data-l="4"][aria-pressed="true"]{border-color:var(--lvl-4);background:var(--lvl-4-bg);color:var(--lvl-4)}
+.levels button[aria-pressed="true"] .bars i:nth-child(-n+4){opacity:.25}
+.levels button[data-l="1"][aria-pressed="true"] .bars i:nth-child(-n+1),
+.levels button[data-l="2"][aria-pressed="true"] .bars i:nth-child(-n+2),
+.levels button[data-l="3"][aria-pressed="true"] .bars i:nth-child(-n+3),
+.levels button[data-l="4"][aria-pressed="true"] .bars i:nth-child(-n+4){opacity:1}
+.weekrow{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--t-line)}
+.weekrow:first-child{border-top:0}
+.weekrow .day{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-title);font-size:var(--fs-h3)}
+
+/* ---- Pestañas ---- */
+.tabs{display:flex;gap:6px;background:var(--t-bg2);padding:5px;border-radius:16px;border:1px solid var(--t-line)}
+.tabs button{flex:1;min-height:46px;border:0;border-radius:12px;background:none;color:var(--t-muted);font:800 var(--fs-small) var(--font);cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--t-accent);color:var(--t-ink)}
+
+/* ---- Ventana emergente (misma en las dos apps) ---- */
+.dlg-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center;z-index:20}
+.dlg-bg.open{display:flex}
+.dlg{background:var(--t-surface);border:1px solid var(--t-line);border-radius:24px 24px 0 0;padding:20px var(--pad) 24px;width:100%;max-width:560px}
+@media(min-width:600px){.dlg-bg{align-items:center}.dlg{border-radius:24px}}
+.meal{display:flex;gap:12px;padding:12px 0;border-top:1px solid var(--t-line)}
+.meal:first-child{border-top:0}
+.meal .t{font-family:var(--font-title);color:var(--t-accent2);min-width:58px}

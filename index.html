@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPT UI Muestra</title>
+<link rel="stylesheet" href="tokens.css"><link rel="stylesheet" href="base.css">
+<style>
+ .demo{background:#06090d;border-bottom:1px solid var(--t-line);padding:10px var(--pad);display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;position:sticky;top:0;z-index:30}
+ .demo span{color:var(--t-muted2);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;width:100%;text-align:center}
+ .demo button{min-height:44px;padding:0 16px;border-radius:12px;border:2px solid var(--t-edge);background:var(--t-surface);color:var(--t-text);font:800 15px var(--font);cursor:pointer}
+ .demo button[aria-pressed="true"]{background:var(--t-accent);color:var(--t-ink);border-color:var(--t-accent)}
+ .frame{max-width:560px;margin:14px auto;border:1px solid var(--t-edge);border-radius:28px;overflow:hidden;background:var(--t-bg)}
+ .frame .app{min-height:760px}
+ .frame .bottomnav{position:static}.frame .topbar{position:static}
+ .frame .dlg-bg{position:absolute}
+ .frame{position:relative}
+ .rules{max-width:560px;margin:0 auto 60px;padding:0 var(--pad)}
+ .rules li{margin-bottom:8px}
+ .sw{display:flex;gap:6px;flex-wrap:wrap}.sw i{width:44px;height:44px;border-radius:12px;border:1px solid var(--t-edge);display:block}
+</style></head><body>
+
+<div class="demo">
+ <span>Solo para esta muestra · en las apps reales no existe este selector</span>
+ <button id="bWO" aria-pressed="true">App WorkOut</button>
+ <button id="bNU" aria-pressed="false">App Nutrición</button>
+</div>
+
+<div class="frame"><div class="app" id="app"></div>
+ <div class="dlg-bg" id="dlg"><div class="dlg" id="dlgBody"></div></div>
+</div>
+
+<div class="rules">
+ <h2>Reglas comunes de navegación</h2>
+ <ol>
+  <li><b>Cada app es independiente</b>: su propio icono, su propio acceso, su propio nombre en la barra superior. No hay selector para cambiar de app.</li>
+  <li><b>Barra superior:</b> icono + nombre de la app a la izquierda, botón de usuario a la derecha. Siempre la misma altura y colores.</li>
+  <li><b>Barra inferior:</b> de 3 a 4 secciones, con icono y palabra. La sección activa va en cian. Es la forma principal de moverse.</li>
+  <li><b>Migas de pan</b> bajo la barra superior (Semanas › Semana 12 › Lunes). Tocar cualquier tramo vuelve a ese nivel.</li>
+  <li><b>Pantallas de detalle:</b> un único botón "Volver" arriba a la izquierda; las acciones principales abajo, anchas, en cian.</li>
+  <li><b>Ventanas emergentes:</b> suben desde abajo, con título, campos y dos botones (Guardar / Cancelar).</li>
+  <li><b>Texto:</b> base 18 px, etiquetas en mayúsculas 14 px, botones de al menos 52 px de alto. Títulos en Archivo Black, resto en Archivo.</li>
+  <li><b>Color y significado:</b> cian = acción y selección; verde = correcto; ámbar = atención; rojo = peligro. Los 4 niveles de intensidad llevan además número de barras y palabra, para no depender solo del color.</li>
+ </ol>
+ <h3>Colores</h3>
+ <div class="sw"><i style="background:#0d1117"></i><i style="background:#161d27"></i><i style="background:#212c3a"></i><i style="background:#34d1c4"></i><i style="background:#6fa8dc"></i><i style="background:#3fb26f"></i><i style="background:#f2b84b"></i><i style="background:#e0614f"></i></div>
+</div>
+
+<script>
+const $=s=>document.querySelector(s);
+const NIV=['Descanso','Baja','Media','Alta'];
+const DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+let st={app:'wo',tab:0,view:'',inten:[4,1,3,2,1,4,1]};
+
+function nav(items,active,onclickName){
+ return `<nav class="bottomnav">`+items.map((it,i)=>`<button ${i===active?'aria-current="page"':''} onclick="${onclickName}(${i})"><span class="ico">${it[0]}</span>${it[1]}</button>`).join('')+`</nav>`;
+}
+function topBar(icon,name){return `<header class="topbar"><div class="brand"><span class="appicon">${icon}</span><span>${name}</span></div><button class="user">Rafa ▾</button></header>`}
+
+/* ---------- WORKOUT ---------- */
+function woWeeks(){return `<div class="crumbs"><b>Semanas</b></div><div class="content">
+ <h1>Mis semanas</h1>
+ <div class="list">${[14,13,12,11].map(n=>`<button class="row" onclick="st.view='sem';render()"><div class="avatar">${n}</div><div class="grow"><b>Semana ${n}</b><p class="sub">5 días con entreno</p></div><span class="chev">›</span></button>`).join('')}</div>
+ <button class="btn secondary">📈 Análisis</button></div>`}
+function woSem(){return `<div class="crumbs"><a href="#" onclick="st.view='';render();return false">Semanas</a> › <b>Semana 12</b></div><div class="content">
+ <button class="btn small secondary" style="width:fit-content" onclick="st.view='';render()">‹ Volver</button>
+ <h1>Semana 12</h1>
+ <div class="kpis"><div class="kpi"><div class="n">5</div><div class="l">DÍAS DE ENTRENO</div></div><div class="kpi"><div class="n">18.400</div><div class="l">KG MOVIDOS</div></div></div>
+ <div class="list">${DIAS.map((d,i)=>`<button class="row"><div class="grow"><b>${d}</b></div><span class="chip" style="color:var(--lvl-${st.inten[i]});">${NIV[st.inten[i]-1]}</span><span class="chev">›</span></button>`).join('')}</div>
+ <button class="btn">📄 Informe semanal</button></div>`}
+function woOther(t){return `<div class="crumbs"><b>${t}</b></div><div class="content"><h1>${t}</h1><div class="card"><p class="sub">Aquí iría la pantalla de ${t.toLowerCase()}.</p></div></div>`}
+function woRender(){
+ const body=st.tab===0?(st.view==='sem'?woSem():woWeeks()):st.tab===1?woOther('Análisis'):woOther('Competiciones');
+ return topBar('🏋️','WorkOut')+body+nav([['🗓️','Semanas'],['📈','Análisis'],['🏆','Competiciones']],st.tab,'setTab');
+}
+
+/* ---------- NUTRICIÓN ---------- */
+function levels(i){return `<div class="levels">`+[1,2,3,4].map(l=>`<button data-l="${l}" aria-pressed="${st.inten[i]===l}" onclick="st.inten[${i}]=${l};render()"><span class="bars"><i></i><i></i><i></i><i></i></span>${NIV[l-1]}</button>`).join('')+`</div>`}
+function nuMenu(){return `<div class="crumbs"><b>Menú</b></div><div class="content">
+ <h1>Menú semanal</h1>
+ <div class="notice ok">Semana leída de WorkOut: Semana 12. Puedes corregir cada día.</div>
+ <div class="card"><h3 style="margin-bottom:0">Intensidad de entreno</h3><p class="sub">Elige un nivel para cada día</p>
+  ${DIAS.map((d,i)=>`<div class="weekrow"><div class="day">${d}${i===5?'<span class="chip">🏆 Competición</span>':''}</div>${levels(i)}</div>`).join('')}
+ </div>
+ <button class="btn ghost" onclick="openDlg()">🏆 Añadir competición</button>
+ <button class="btn" onclick="st.view='dia';render()">Generar menú</button></div>`}
+function nuDia(){return `<div class="crumbs"><a href="#" onclick="st.view='';render();return false">Menú</a> › <b>Sábado</b></div><div class="content">
+ <button class="btn small secondary" style="width:fit-content" onclick="st.view='';render()">‹ Volver</button>
+ <h1>Sábado · 🏆</h1>
+ <div class="kpis"><div class="kpi"><div class="n">3.450</div><div class="l">KCAL</div></div><div class="kpi"><div class="n">480 g</div><div class="l">HIDRATOS</div></div></div>
+ <div class="card"><h3>Plan por horas</h3>
+  <div class="meal"><div class="t">06:30</div><div><b>Despertar y agua</b><p class="sub">500 ml con una pizca de sal.</p></div></div>
+  <div class="meal"><div class="t">08:00</div><div><b>Pesaje</b><p class="sub">Después del pesaje, empezar a comer.</p></div></div>
+  <div class="meal"><div class="t">08:30</div><div><b>Desayuno de competición</b><p class="sub">Arroz con plátano y tortilla.</p></div></div></div>
+ <div class="btn-row"><button class="btn secondary">Cambiar plato</button><button class="btn">Confirmar día</button></div></div>`}
+function nuAtleta(){return `<div class="crumbs"><b>Atleta</b></div><div class="content">
+ <h1>Atleta</h1>
+ <div class="list"><button class="row"><div class="avatar">R</div><div class="grow"><b>Rafa</b><p class="sub">94 kg · M50 -94</p></div><span class="chev">›</span></button></div>
+ <button class="btn ghost">🔗 Elegir un atleta de WorkOut</button>
+ <div class="card"><h3>O crear a mano</h3>
+  <div class="field"><label class="f">Nombre</label><input placeholder="Nombre y apellido"></div>
+  <div class="grid2"><div class="field"><label class="f">Peso (kg)</label><input inputmode="decimal" value="94"></div><div class="field"><label class="f">Categoría</label><input value="M50 -94"></div></div>
+  <button class="btn">Guardar atleta</button></div></div>`}
+function nuOther(t){return `<div class="crumbs"><b>${t}</b></div><div class="content"><h1>${t}</h1><div class="card"><p class="sub">Aquí iría la pantalla de ${t.toLowerCase()}.</p></div></div>`}
+function nuRender(){
+ const body=st.tab===0?(st.view==='dia'?nuDia():nuMenu()):st.tab===1?nuAtleta():nuOther('Seguimiento');
+ return topBar('🥗','Nutrición')+body+nav([['🍽️','Menú'],['👤','Atleta'],['📊','Seguimiento']],st.tab,'setTab');
+}
+
+function render(){ $('#app').innerHTML = st.app==='wo'?woRender():nuRender(); }
+function setTab(i){st.tab=i;st.view='';render();}
+function setApp(a){st.app=a;st.tab=0;st.view='';$('#bWO').setAttribute('aria-pressed',a==='wo');$('#bNU').setAttribute('aria-pressed',a==='nu');render();}
+function openDlg(){
+ $('#dlgBody').innerHTML=`<h2>🏆 Competición</h2><p class="sub" style="margin-bottom:14px">Día de la competición: Sábado</p>
+ <div class="grid2"><div class="field"><label class="f">Hora de pesaje</label><input type="time" value="08:00"></div><div class="field"><label class="f">Hora de inicio</label><input type="time" value="10:00"></div></div>
+ <div class="btn-row"><button class="btn secondary" onclick="closeDlg()">Cancelar</button><button class="btn" onclick="closeDlg()">Guardar</button></div>`;
+ $('#dlg').classList.add('open');}
+function closeDlg(){$('#dlg').classList.remove('open')}
+$('#bWO').onclick=()=>setApp('wo');$('#bNU').onclick=()=>setApp('nu');
+render();
+</script>
+</body></html>
