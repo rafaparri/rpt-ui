@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>WorkOut 2.0</title>
+<link rel="apple-touch-icon" href="static/apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" sizes="32x32" href="static/favicon-32.png?v=2">
+<link rel="manifest" href="manifest.webmanifest">
+<script>window.WO2_VERSION='20261101075807';</script>
+<script src="update.js?v=20261101075807"></script>
+<meta name="apple-mobile-web-app-title" content="WorkOut 2.0">
+<meta name="application-name" content="WorkOut 2.0">
+<meta name="theme-color" content="#0d1117">
+<link rel="stylesheet" href="palette.css?v=2">
+<link rel="stylesheet" href="theme.css?v=3">
+<style>
+  *{ box-sizing:border-box; }
+  body{ margin:0; min-height:100vh; display:flex; flex-direction:column; }
+  .top{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px clamp(16px,4vw,56px); background:var(--t-bg2); border-bottom:1px solid var(--line); }
+  .brand{ display:flex; align-items:center; gap:12px; text-decoration:none; color:var(--chalk); }
+  .brand .wo2-fig{ width:64px; }
+  .brand span{ font-family:ArchivoBlack,sans-serif; font-size:22px; }
+  .brand b{ color:var(--gold); font-weight:400; }
+  .topNote{ font-size:15px; color:var(--muted-2); text-align:right; }
+  .hero{ position:relative; overflow:hidden; background:var(--surface); border-bottom:1px solid var(--line); padding:clamp(36px,6vw,64px) clamp(16px,4vw,56px) 120px; }
+  .heroArt{ position:absolute; right:0; top:0; bottom:0; width:min(560px,46vw); background:var(--t-accent); clip-path:polygon(28% 0,100% 0,100% 100%,0 100%); display:flex; align-items:center; justify-content:flex-end; padding:0 clamp(20px,4vw,64px) 60px 0; }
+  .heroArt .wo2-fig{ width:min(400px,34vw); background:var(--t-ink); }
+  .hero{ min-height:440px; }
+  .heroText{ position:relative; max-width:620px; display:flex; flex-direction:column; gap:18px; }
+  .kicker{ font-size:16px; font-weight:800; letter-spacing:.16em; color:var(--gold-2); }
+  .hero h1{ margin:0; font-size:clamp(40px,7vw,76px) !important; line-height:.98; }
+  .hero p{ margin:0; font-size:clamp(18px,2.2vw,22px); line-height:1.45; color:var(--muted); max-width:540px; }
+  .roles{ position:relative; margin-top:-72px; padding:0 clamp(16px,4vw,56px) 40px; display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:20px; }
+  .role{ display:flex; flex-direction:column; gap:12px; padding:28px; border-radius:20px; text-decoration:none; background:var(--t-surface2); border:1px solid var(--surface-3); color:var(--chalk); box-shadow:0 14px 30px rgba(0,0,0,.18); min-height:200px; transition:transform .15s ease, border-color .15s ease; }
+  .role:hover{ transform:translateY(-3px); border-color:var(--gold); }
+  .role.main{ background:var(--gold); color:var(--ink); border-color:var(--gold); }
+  .role svg{ width:44px; height:44px; stroke:var(--gold); }
+  .role.main svg{ stroke:var(--ink); }
+  .role .t{ font-family:ArchivoBlack,sans-serif; font-size:28px; }
+  .role .d{ font-size:19px; line-height:1.4; color:var(--muted); }
+  .role.main .d{ color:var(--ink); font-weight:600; }
+  footer{ margin-top:auto; text-align:center; padding:24px; font-size:15px; color:var(--muted-2); }
+  @media (max-width:640px){
+    .topNote{ display:none; }
+    .hero{ padding-top:24px; }
+    .hero{ display:flex; flex-direction:column; gap:22px; min-height:0; }
+    .heroArt{ position:relative; width:auto; height:170px; border-radius:20px; clip-path:polygon(14% 0,100% 0,100% 100%,0 100%); justify-content:center; padding:0 0 0 30px; order:-1; }
+    .heroArt .wo2-fig{ width:min(250px,64vw); }
+    .role{ min-height:0; }
+  }
+</style>
+</head>
+<body>
+  <div class="top">
+    <a class="brand" href="./"><span class="wo2-fig" aria-hidden="true"></span><span>WORKOUT<b> 2.0</b></span></a>
+    <div class="topNote">con tecnología de RPT</div>
+  </div>
+  <section class="hero">
+    <div class="heroArt" aria-hidden="true"><span class="wo2-fig"></span></div>
+    <div class="heroText">
+      <span class="kicker">HALTEROFILIA · CLUBES</span>
+    </div>
+  </section>
+  <nav class="roles" aria-label="Cómo quieres entrar">
+    <a class="role main" href="atleta.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6.5 6.5v11M17.5 6.5v11M3 9v6M21 9v6M6.5 12h11"/></svg>
+      <span class="t">Soy atleta</span>
+      <span class="d">Mi entreno de hoy, mis marcas y lo que me dice el entrenador.</span>
+    </a>
+    <a class="role" href="entrenador.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 4h6v3H9zM7 5.5H5v15h14v-15h-2M8.5 12l2.5 2.5 4.5-5"/></svg>
+      <span class="t">Soy entrenador</span>
+      <span class="d">Programar semanas, revisar y comentar a cada atleta.</span>
+    </a>
+    <a class="role" href="superadmin.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/></svg>
+      <span class="t">Administración</span>
+      <span class="d">Clubes, suscripciones y accesos.</span>
+    </a>
+  </nav>
+  <footer>WorkOut 2.0 · RPT</footer>
+</body>
+</html>

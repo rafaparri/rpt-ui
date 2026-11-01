@@ -1,0 +1,619 @@
+#!/usr/bin/env python3
+"""
+Genera entreno.html (la app del atleta de WorkOut 2.0) a partir de la app
+original mi-plan-halterofilia.html, para que ambas sean siempre la misma app.
+
+Cada vez que se mejore la app original, basta con volver a ejecutar este
+script: copia la app original entera y le aplica unos pocos cambios:
+  - Usa el Firebase de WorkOut 2.0 y la cuenta del atleta (no el código de
+    sincronización ni la lista local de deportistas).
+  - La programación la pone el entrenador: el atleta no puede subir, borrar,
+    renombrar ni editar semanas, ejercicios o pesos.
+  - Muestra arriba la franja con el logo del club + "con tecnología de RPT".
+
+Si algún parche deja de encajar (porque la app original ha cambiado en ese
+punto), el script se detiene y dice cuál, en vez de generar algo roto.
+
+Uso: python3 build_entreno.py original.html entreno.html
+"""
+import sys, os
+
+src_path, out_path = sys.argv[1], sys.argv[2]
+html = open(src_path, encoding='utf-8').read()
+
+
+def patch(old, new, count=1):
+    global html
+    n = html.count(old)
+    if n != count:
+        raise SystemExit('PARCHE QUE NO ENCAJA (%d coincidencias, se esperaban %d):\n%s' % (n, count, old[:200]))
+    html = html.replace(old, new)
+
+
+# ---------- Cabecera: título, Firebase Auth, configuración de WorkOut 2.0 ----------
+patch('<title>Mi Plan · Halterofilia</title>', '<title>WorkOut 2.0 · Mi entreno</title>')
+# Icono de WorkOut 2.0 en la pantalla de inicio del móvil
+patch('<link rel="apple-touch-icon" href="static/apple-touch-icon.png">', '<link rel="apple-touch-icon" href="static/apple-touch-icon.png?v=2">\n<link rel="icon" type="image/png" sizes="32x32" href="static/favicon-32.png?v=2">\n<link rel="manifest" href="manifest.webmanifest">\n<meta name="apple-mobile-web-app-title" content="WorkOut 2.0">\n<meta name="application-name" content="WorkOut 2.0">')
+patch('<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>',
+      '<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>\n'
+      '<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>\n'
+      '<script src="firebase-init.js"></script>\n'
+      '<script src="branding.js"></script>')
+# La configuración del Firebase original no se usa aquí (evita el choque de nombres)
+patch('const firebaseConfig = {\n  apiKey: "AIzaSyAZsCxPgTvFddB5IhDe6hqWtkycykMXAKw"',
+      'const firebaseConfig_ORIGINAL = {\n  apiKey: "AIzaSyAZsCxPgTvFddB5IhDe6hqWtkycykMXAKw"')
+patch('    firebase.initializeApp(firebaseConfig);\n    fbDb = firebase.firestore();',
+      '    fbDb = db; // WorkOut 2.0: ya inicializado en firebase-init.js')
+
+# Franja de marca (logo del club + RPT) encima de la app
+patch('<body>\n<div id="root"></div>', '<body>\n<div id="brandStripContainer"></div>\n<div id="root"></div>')
+
+# ---------- El atleta no edita la programación ----------
+patch("<script>\n/* ============== EXERCISE DICTIONARY",
+      "<script>\nconst WO2_ATHLETE = true; // WorkOut 2.0: app del atleta\n/* ============== EXERCISE DICTIONARY")
+
+# Pantalla del día: sin "Editar a mano", sin "Añadir entreno a mano", sin datos de depuración
+patch('    heading.appendChild(manualEditBtn);', '    if (!WO2_ATHLETE) heading.appendChild(manualEditBtn);')
+patch('      emptyWrap.appendChild(addManualBtn);', '      if (!WO2_ATHLETE) emptyWrap.appendChild(addManualBtn);')
+patch('  wrap.appendChild(dbgToggle);', '  if (!WO2_ATHLETE) wrap.appendChild(dbgToggle);')
+# Tarjeta de ejercicio: sin papelera
+patch("  delBtn.onclick = (e)=>{ e.stopPropagation(); state.confirmDeleteExercise = entryKey; render(); };\n  top.appendChild(delBtn);",
+      "  delBtn.onclick = (e)=>{ e.stopPropagation(); state.confirmDeleteExercise = entryKey; render(); };\n  if (!WO2_ATHLETE) top.appendChild(delBtn);")
+# Tarjetas grandes: "Editar", "Borrar" y "+ Nuevo peso" SÍ se mantienen.
+# El atleta apunta lo que realmente hizo; se guarda como su versión de la
+# semana (progress/plan_*), sin tocar la programación del entrenador.
+# Lista de semanas: sin "+ Nueva semana", renombrar ni borrar
+patch("  newBtn.onclick = ()=>{ state.showHistory=false; state.confirmDeleteId=null; state.activePlanId=null; state.error=null; render(); };\n  sheet.appendChild(newBtn);",
+      "  newBtn.onclick = ()=>{ state.showHistory=false; state.confirmDeleteId=null; state.activePlanId=null; state.error=null; render(); };\n  if (!WO2_ATHLETE) sheet.appendChild(newBtn);")
+patch("      btns.appendChild(delBtn);\n      item.appendChild(btns);",
+      "      btns.appendChild(delBtn);\n      if (!WO2_ATHLETE) item.appendChild(btns);")
+# Perfil: sin "Cambiar deportista"
+patch('  actions.appendChild(userBtn);', '  if (!WO2_ATHLETE) actions.appendChild(userBtn);')
+# Menú: fuera "Nuevo plan", "Deportista", "Sincronizar" y "Copia de seguridad"; dentro "Salir"
+patch("  sheet.appendChild(menuItem('📄', '+ Nuevo plan',", "  if (!WO2_ATHLETE) sheet.appendChild(menuItem('📄', '+ Nuevo plan',")
+patch("  sheet.appendChild(menuItem('👤', 'Deportista: '", "  if (!WO2_ATHLETE) sheet.appendChild(menuItem('👤', 'Deportista: '")
+patch("  sheet.appendChild(menuItem(syncStatus==='on'", "  if (!WO2_ATHLETE) sheet.appendChild(menuItem(syncStatus==='on'")
+patch("  sheet.appendChild(menuItem('💾', 'Exportar copia de seguridad', async ()=>{",
+      "  if (WO2.coachView) sheet.appendChild(menuItem('⬅️', 'Volver a la ficha del atleta', ()=>{ window.location.href = 'ficha-atleta.html?athlete=' + encodeURIComponent(WO2.viewedUid); }));\n"
+      "  if (WO2_ATHLETE && !WO2.coachView && WO2.isCoach) sheet.appendChild(menuItem('📋', 'Panel de entrenador', ()=>{ window.location.href = 'entrenador.html'; }));\n"
+      "  if (WO2_ATHLETE && !WO2.coachView) sheet.appendChild(menuItem('🚪', 'Salir', ()=>{ wo2SignOut(); }));\n"
+      "  if (!WO2_ATHLETE) sheet.appendChild(menuItem('💾', 'Exportar copia de seguridad', async ()=>{")
+
+# Informes del día y de la semana: bloque "Comentarios del entrenador"
+patch("  const subject = 'Entreno ' + DAY_NAMES[r.day] + (r.data.week!==null?' · Semana '+r.data.week:'') + ' — ' + r.data.athlete;\n"
+      "  sheet.appendChild(reportActionsRow(subject, dayReportPlainText(r.data, r.memo.text), ()=> generateDayReportPDF(r.data, r.memo.text)));",
+      "  sheet.appendChild(wo2CoachCommentBlock(r.planId + '|' + r.day));\n"
+      "  const subject = 'Entreno ' + DAY_NAMES[r.day] + (r.data.week!==null?' · Semana '+r.data.week:'') + ' — ' + r.data.athlete;\n"
+      "  const wo2DayMemo = wo2MemoWithComments(r.memo.text, r.planId + '|' + r.day);\n"
+      "  sheet.appendChild(reportActionsRow(subject, dayReportPlainText(r.data, wo2DayMemo), ()=> generateDayReportPDF(r.data, wo2DayMemo)));")
+patch("  const subject = 'Informe semanal' + (plan.meta && plan.meta.week!=null ? ' · Semana '+plan.meta.week : '') + ' — ' + getActiveUser().name;\n"
+      "  sheet.appendChild(reportActionsRow(\n"
+      "    subject,\n"
+      "    weekReportPlainText(plan, r.perDay, r.memo.text, r.status, r.watchPatterns, r.keywordPatterns, r.movementCharts),\n"
+      "    ()=> generateWeekReportPDF(plan, r.perDay, r.memo.text, r.status, r.watchPatterns, r.keywordPatterns, r.movementCharts)\n"
+      "  ));",
+      "  sheet.appendChild(wo2CoachCommentBlock(plan.id + '|semana'));\n"
+      "  const subject = 'Informe semanal' + (plan.meta && plan.meta.week!=null ? ' · Semana '+plan.meta.week : '') + ' — ' + getActiveUser().name;\n"
+      "  const wo2WeekMemo = wo2MemoWithComments(r.memo.text, plan.id + '|semana');\n"
+      "  sheet.appendChild(reportActionsRow(\n"
+      "    subject,\n"
+      "    weekReportPlainText(plan, r.perDay, wo2WeekMemo, r.status, r.watchPatterns, r.keywordPatterns, r.movementCharts),\n"
+      "    ()=> generateWeekReportPDF(plan, r.perDay, wo2WeekMemo, r.status, r.watchPatterns, r.keywordPatterns, r.movementCharts)\n"
+      "  ));")
+
+# Comentarios del entrenador visibles en la app: semana, día y ejercicio
+patch("  wrap.appendChild(top);\n\n  // plate row", "  wrap.appendChild(top);\n  if (WO2_ATHLETE) wo2CoachNoteBanner(wrap, plan.id + '|semana', 'Comentario de tu entrenador sobre la semana');\n\n  // plate row")
+patch("  section.appendChild(heading);\n\n  if (state.manualEditDay === state.activeDay){",
+      "  section.appendChild(heading);\n  if (WO2_ATHLETE) wo2CoachNoteBanner(section, plan.id + '|' + state.activeDay, 'Tu entrenador sobre este día');\n\n  if (state.manualEditDay === state.activeDay){")
+patch("  card.appendChild(chips);", "  card.appendChild(chips);\n  if (WO2_ATHLETE) wo2CoachNoteBanner(card, plan.id + '|' + day + '|' + idx, 'Tu entrenador');")
+
+# ---------- Arranque: cuenta del atleta + datos de WorkOut 2.0 ----------
+ADAPTER = r'''
+/* ===================== WorkOut 2.0: datos del atleta ===================== */
+// La programación (plans) la escribe el entrenador y aquí solo se lee.
+// Lo que hace el atleta (marcas, notas, series, fechas reales) va a
+// progress/main, y su perfil (objetivos, RM, medidas) a progress/profile.
+// Si el atleta cambia, borra o añade pesos, su versión de esa semana se
+// guarda aparte en progress/plan_<id>; la del entrenador no se toca.
+const WO2 = { uid:null, clubId:null, base:null, progressTimer:null, profileTimer:null, isCoach:false,
+              coachView:false, viewedUid:null, coachComments:{},
+              coachDays:{}, pushedOverride:{} };
+function wo2OverrideDocId(planId){ return 'plan_' + String(planId).replace(/[^A-Za-z0-9_-]/g,'_').slice(0,140); }
+// Solo se guardan los ejercicios que el atleta ha cambiado ("L|0": ejercicio);
+// el resto sigue saliendo de la programación del entrenador, así que si el
+// entrenador corrige otro ejercicio, el atleta ve la corrección.
+function wo2DiffChanges(coachDays, athleteDays){
+  const changes = {};
+  Object.keys(athleteDays || {}).forEach(day=>{
+    (athleteDays[day] || []).forEach((entry, idx)=>{
+      const coachEntry = (coachDays[day] || [])[idx];
+      if (JSON.stringify(entry) !== JSON.stringify(coachEntry)) changes[day + '|' + idx] = entry;
+    });
+  });
+  return changes;
+}
+function wo2ApplyChanges(days, changes){
+  Object.keys(changes || {}).forEach(k=>{
+    const sep = k.indexOf('|');
+    const day = k.slice(0, sep), idx = parseInt(k.slice(sep+1), 10);
+    if (days[day] && idx < days[day].length) days[day][idx] = changes[k];
+  });
+  return days;
+}
+
+function wo2SignOut(){
+  try{ dismissRestTimer(); }catch(e){}
+  auth.signOut().then(()=> window.location.replace('atleta.html'));
+}
+
+function wo2ScheduleProgressPush(){
+  if (!WO2.base) return;
+  clearTimeout(WO2.progressTimer);
+  WO2.progressTimer = setTimeout(wo2PushProgressNow, 700);
+}
+async function wo2PushProgressNow(){
+  if (WO2.coachView) return; // vista del entrenador: solo lectura
+  const dayDates = {};
+  state.plans.forEach(p=>{ if (p.dayDates) dayDates[p.id] = p.dayDates; });
+  try{
+    await WO2.base.collection('progress').doc('main').set({
+      checks: state.checks || {},
+      notes: state.notes || {},
+      seriesProgress: state.seriesProgress || {},
+      wo2x: state.wo2x || {},
+      dayDates,
+      updatedAt: Date.now()
+    });
+    for (const p of state.plans){
+      if (WO2.coachDays[p.id] === undefined) continue;
+      const changes = wo2DiffChanges(JSON.parse(WO2.coachDays[p.id]), p.days || {});
+      const cur = Object.keys(changes).length ? JSON.stringify(changes) : null;
+      const pushed = WO2.pushedOverride[p.id] || null;
+      if (cur === pushed) continue;
+      const ref = WO2.base.collection('progress').doc(wo2OverrideDocId(p.id));
+      if (cur){ await ref.set({ planId: p.id, changes, updatedAt: Date.now() }); }
+      else { await ref.delete(); }
+      WO2.pushedOverride[p.id] = cur;
+    }
+  }catch(e){ wo2SaveError(e); }
+}
+function wo2ScheduleProfilePush(){
+  if (!WO2.base || WO2.coachView) return;
+  clearTimeout(WO2.profileTimer);
+  WO2.profileTimer = setTimeout(async ()=>{
+    const u = getActiveUser();
+    if (!u) return;
+    try{
+      await WO2.base.collection('progress').doc('profile').set({
+        objetivos: u.objetivos || null, rms: u.rms || {}, metrics: u.metrics || [], updatedAt: Date.now()
+      });
+    }catch(e){ wo2SaveError(e); }
+  }, 700);
+}
+// --- Comentarios del entrenador en los informes ---
+function wo2MemoWithComments(memo, key){
+  const c = (WO2.coachComments[key] || '').trim();
+  if (!c) return memo;
+  return (memo ? memo + '\n\n' : '') + 'COMENTARIOS DEL ENTRENADOR:\n' + c;
+}
+function wo2CoachCommentBlock(key){
+  const wrap = el('div');
+  wrap.style.cssText = 'margin-top:18px;padding:16px;border-radius:12px;background:var(--t-accent-soft);color:var(--t-text);border:2px solid var(--yellow-deep);';
+  const title = el('div', null, '💬 COMENTARIOS DEL ENTRENADOR');
+  title.style.cssText = 'font-family:Oswald,sans-serif;font-weight:700;font-size:16px;color:var(--chalk);letter-spacing:.03em;margin-bottom:10px;';
+  wrap.appendChild(title);
+  const current = WO2.coachComments[key] || '';
+  if (WO2.coachView){
+    const ta = document.createElement('textarea');
+    ta.value = current;
+    ta.placeholder = 'Escribe aquí tus comentarios para el atleta…';
+    ta.style.cssText = 'width:100%;min-height:120px;box-sizing:border-box;border:1.5px solid var(--surface-3);border-radius:10px;padding:12px;font-family:Inter,sans-serif;font-size:17px;line-height:1.5;color:var(--chalk);background:#fff;';
+    wrap.appendChild(ta);
+    const btn = el('button','mark-btn ok selected','Guardar comentario');
+    btn.style.cssText += 'width:100%;margin-top:10px;font-size:17px;';
+    const msg = el('div');
+    msg.style.cssText = 'font-size:15px;margin-top:8px;text-align:center;';
+    btn.onclick = async ()=>{
+      const text = ta.value.trim();
+      btn.disabled = true;
+      try{
+        await WO2.base.collection('coachNotes').doc('comments').set({ comments: { [key]: text }, updatedAt: Date.now() }, { merge: true });
+        WO2.coachComments[key] = text;
+        msg.textContent = 'Comentario guardado. El atleta lo verá en su informe.';
+        msg.style.color = 'var(--ok)';
+      }catch(e){
+        msg.textContent = 'No se ha podido guardar (' + (e.message || e.code) + ').';
+        msg.style.color = 'var(--red)';
+      }
+      btn.disabled = false;
+    };
+    wrap.appendChild(btn); wrap.appendChild(msg);
+  } else {
+    const txt = el('div', null, current || 'Tu entrenador todavía no ha escrito comentarios en este informe.');
+    txt.style.cssText = 'font-size:17px;line-height:1.6;white-space:pre-wrap;color:' + (current ? 'var(--chalk)' : 'var(--muted)') + ';';
+    wrap.appendChild(txt);
+  }
+  return wrap;
+}
+function wo2CoachNoteBanner(parent, key, label){
+  const text = (WO2.coachComments[key] || '').trim();
+  if (!text) return;
+  const b = el('div');
+  b.style.cssText = 'margin:10px 0 12px;padding:12px 14px;border-radius:12px;background:var(--t-accent-soft);color:var(--t-text);border-left:5px solid var(--yellow-deep);font-family:Inter,sans-serif;';
+  b.onclick = (e)=> e.stopPropagation();
+  const l = el('div', null, '💬 ' + label);
+  l.style.cssText = 'font-size:13.5px;font-weight:700;color:#8a6512;text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;';
+  const t = el('div'); t.textContent = text;
+  t.style.cssText = 'font-size:17px;line-height:1.5;color:var(--chalk);white-space:pre-wrap;';
+  b.appendChild(l); b.appendChild(t);
+  parent.appendChild(b);
+}
+function wo2Toast(text){
+  let t = document.getElementById('wo2Toast');
+  if (!t){
+    t = document.createElement('div');
+    t.id = 'wo2Toast';
+    t.style.cssText = 'position:fixed;left:12px;right:12px;bottom:14px;z-index:900;background:#20242e;color:#fff;padding:14px 16px;border-radius:12px;font-family:Inter,sans-serif;font-size:16px;font-weight:600;text-align:center;';
+    document.body.appendChild(t);
+  }
+  t.textContent = text;
+  clearTimeout(t._h); t._h = setTimeout(()=>{ if (t.parentNode) t.parentNode.removeChild(t); }, 3500);
+}
+function wo2CoachBanner(name){
+  const b = document.createElement('div');
+  b.style.cssText = 'background:var(--t-accent-soft);color:var(--t-text);border-bottom:2px solid var(--yellow-deep);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:Inter,sans-serif;font-size:15.5px;color:var(--chalk);';
+  b.innerHTML = '<span>👁 <b>Vista del entrenador</b> · entreno de <b></b> · solo lectura</span>';
+  b.querySelectorAll('b')[1].textContent = name;
+  const back = document.createElement('a');
+  back.textContent = '← Volver a la ficha';
+  back.href = 'ficha-atleta.html?athlete=' + encodeURIComponent(WO2.viewedUid);
+  back.style.cssText = 'font-weight:700;color:var(--chalk);';
+  b.appendChild(back);
+  return b;
+}
+
+function wo2SaveError(e){
+  console.error('WorkOut 2.0: no se pudo guardar', e);
+  let bar = document.getElementById('wo2SaveError');
+  if (!bar){
+    bar = document.createElement('div');
+    bar.id = 'wo2SaveError';
+    bar.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:900;background:#c14a3a;color:#fff;padding:14px 16px;border-radius:12px;font-family:Inter,sans-serif;font-size:15px;font-weight:600;text-align:center;';
+    document.body.appendChild(bar);
+  }
+  bar.textContent = 'No se ha podido guardar el último cambio. Revisa la conexión; si sigue pasando, avisa a tu entrenador.';
+  setTimeout(()=>{ if (bar.parentNode) bar.parentNode.removeChild(bar); }, 7000);
+}
+
+// Sustituye el almacenamiento y la sincronización de la app original
+saveUsersAsync = function(){ wo2ScheduleProfilePush(); return Promise.resolve(); };
+saveActiveUserIdAsync = function(){ return Promise.resolve(); };
+saveUserDataAsync = function(userId, data){ userDataCache[userId] = data; wo2ScheduleProgressPush(); return Promise.resolve(); };
+loadUserDataAsync = async function(userId){ return userDataCache[userId] || { plans:[], checks:{}, notes:{}, seriesProgress:{} }; };
+deleteUserDataAsync = function(){ return Promise.resolve(); };
+prefetchAllUserData = function(){};
+startSync = async function(){};
+stopSync = function(){};
+scheduleRosterPush = function(){};
+scheduleUserPush = function(){};
+
+// Sin semanas todavía: en vez de la pantalla de subir archivo, un aviso
+renderUpload = function(){
+  const wrap = el('div');
+  wrap.style.cssText = 'min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:30px 22px;text-align:center;background:var(--bg);';
+  const t = el('div', null, 'Todavía no tienes ninguna semana');
+  t.style.cssText = "font-family:Oswald,sans-serif;font-weight:700;font-size:24px;text-transform:uppercase;color:var(--chalk);";
+  const p = el('div', null, 'Cuando tu entrenador te suba la programación, aparecerá aquí.');
+  p.style.cssText = 'font-family:Inter,sans-serif;font-size:17px;color:var(--muted);max-width:340px;line-height:1.4;';
+  const prof = el('button','tb-btn','🎯 Mi perfil');
+  prof.style.cssText += 'font-size:16px;padding:12px 22px;';
+  prof.onclick = ()=>{ state.showProfile = true; render(); };
+  const out = el('button','tb-btn','🚪 Salir');
+  out.style.cssText += 'font-size:16px;padding:12px 22px;';
+  out.onclick = ()=> wo2SignOut();
+  wrap.appendChild(t); wrap.appendChild(p); wrap.appendChild(prof); wrap.appendChild(out);
+  return wrap;
+};
+
+function wo2ShowBootError(msg){
+  root.innerHTML = '';
+  const wrap = el('div');
+  wrap.style.cssText = 'min-height:80vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:30px 22px;text-align:center;font-family:Inter,sans-serif;';
+  const t = el('div', null, msg);
+  t.style.cssText = 'font-size:17px;color:var(--chalk);max-width:360px;line-height:1.4;';
+  const retry = el('button','tb-btn','Reintentar');
+  retry.onclick = ()=> window.location.reload();
+  const out = el('button','tb-btn','Salir');
+  out.onclick = ()=> wo2SignOut();
+  wrap.appendChild(t); wrap.appendChild(retry); wrap.appendChild(out);
+  root.appendChild(wrap);
+}
+
+(function wo2Boot(){
+  root.innerHTML = '';
+  const bootEl = renderBootLoading();
+  root.appendChild(bootEl);
+  // Qué está haciendo y cuánto lleva (si tarda, se ve en qué paso se queda)
+  const bootT0 = Date.now();
+  let bootStep = 'comprobando tu sesión';
+  const bootTick = ()=>{ const s = Math.round((Date.now()-bootT0)/1000); bootEl.textContent = 'Cargando tus datos… ' + bootStep + (s >= 2 ? ' · ' + s + ' s' : ''); };
+  const bootStage = (t)=>{ bootStep = t; bootTick(); };
+  const bootTimer = setInterval(bootTick, 1000);
+  bootTick();
+  const strip = document.getElementById('brandStripContainer');
+  strip.appendChild(renderBrandStrip(null, null));
+
+  let started = false;
+  auth.onAuthStateChanged(async (user)=>{
+    if (started) return;
+    started = true;
+    if (!user){ window.location.replace('atleta.html'); return; }
+    // Todas las lecturas a la vez (antes iban en tres tandas seguidas)
+    const loadAll = ()=> Promise.all([
+      db.collection('clubs').doc(WO2.clubId).get().catch(()=>null),
+      WO2.base.get(),
+      WO2.coachView ? Promise.resolve(null) : db.collection('users').doc(user.uid).get().catch(()=>null),
+      WO2.base.collection('coachNotes').doc('comments').get().catch(()=>null),
+      WO2.base.collection('plans').get(),
+      WO2.base.collection('progress').get()
+    ]);
+    let dataP = null;
+    try{
+      const viewAthlete = new URLSearchParams(window.location.search).get('athlete');
+      if (viewAthlete && viewAthlete !== user.uid){
+        // Vista del entrenador: entreno e informes de uno de sus atletas
+        const cg = await db.collection('users').doc(user.uid).collection('roleGrants').doc('coach').get();
+        if (!cg.exists){ window.location.replace('entrenador.html'); return; }
+        WO2.coachView = true;
+        WO2.isCoach = true;
+        WO2.viewedUid = viewAthlete;
+        WO2.uid = viewAthlete;
+        WO2.clubId = cg.data().clubId;
+        WO2.base = db.collection('clubs').doc(WO2.clubId).collection('athletes').doc(viewAthlete);
+        bootStage('leyendo la semana');
+        dataP = loadAll();
+        openFlashcards = function(){ wo2Toast('Vista del entrenador: aquí solo se consulta; el atleta es quien marca sus series.'); };
+      } else {
+        // El club se recuerda en este móvil: así se piden el permiso y los datos a la vez
+        const ck = 'wo2_club_' + user.uid;
+        let cached = null; try{ cached = localStorage.getItem(ck); }catch(e){}
+        WO2.uid = user.uid;
+        const grantP = db.collection('users').doc(user.uid).collection('roleGrants').doc('athlete').get();
+        if (cached){
+          WO2.clubId = cached;
+          WO2.base = db.collection('clubs').doc(cached).collection('athletes').doc(user.uid);
+          dataP = loadAll(); dataP.catch(()=>{});
+          bootStage('leyendo tu semana');
+        }
+        const grantSnap = await grantP;
+        if (!grantSnap.exists){ try{ localStorage.removeItem(ck); }catch(e){} window.location.replace('atleta.html'); return; }
+        const cid = grantSnap.data().clubId;
+        try{ localStorage.setItem(ck, cid); }catch(e){}
+        if (cid !== cached){
+          WO2.clubId = cid;
+          WO2.base = db.collection('clubs').doc(cid).collection('athletes').doc(user.uid);
+          dataP = loadAll();
+          bootStage('leyendo tu semana');
+        }
+      }
+
+      db.collection('users').doc(user.uid).collection('roleGrants').doc('coach').get()
+        .then(c=>{ WO2.isCoach = c.exists; }).catch(()=>{});
+      const [clubSnap, athSnap, idSnap, notesSnap, plansSnap, progSnap] = await dataP;
+      bootStage('preparando la pantalla');
+      const club = (clubSnap && clubSnap.exists) ? clubSnap.data() : {};
+      if (WO2.coachView && !athSnap.exists){ wo2ShowBootError('Este atleta no pertenece a tu club.'); return; }
+      const ath = athSnap.exists ? athSnap.data() : {};
+      if (!WO2.coachView && (club.blocked || ath.blocked)){ window.location.replace('atleta.html?check=1'); return; }
+      WO2.coachComments = (notesSnap && notesSnap.exists && notesSnap.data().comments) || {};
+      strip.innerHTML = '';
+      strip.appendChild(renderBrandStrip(club.logoUrl, club.name));
+      if (WO2.coachView) strip.appendChild(wo2CoachBanner(ath.name || ath.email || 'atleta'));
+
+      const progDocs = {};
+      progSnap.docs.forEach(d=>{ progDocs[d.id] = d.data(); });
+      const main = progDocs['main'] || {};
+      const prof = progDocs['profile'] || {};
+      WO2.videos = (progDocs['videos'] && progDocs['videos'].list) || [];
+      const dayDates = main.dayDates || {};
+      const plans = plansSnap.docs.map(d=>{
+        const p = d.data();
+        if (!p.id) p.id = d.id;
+        if (!p.meta) p.meta = { week:null, jornada:null };
+        if (!p.days) p.days = {};
+        if (!p.uploadedAt) p.uploadedAt = 0;
+        p.needsReview = false; // la revisión de lo leído del Excel la hace el entrenador
+        if (dayDates[p.id]) p.dayDates = dayDates[p.id];
+        WO2.coachDays[p.id] = JSON.stringify(p.days);
+        const ov = progDocs[wo2OverrideDocId(p.id)];
+        if (ov){
+          // (formato antiguo de prueba: semana entera → se convierte a cambios)
+          const changes = ov.changes || (ov.days ? wo2DiffChanges(p.days, ov.days) : {});
+          wo2ApplyChanges(p.days, changes);
+          WO2.pushedOverride[p.id] = ov.changes ? JSON.stringify(ov.changes) : '__old_format__';
+        }
+        return p;
+      });
+
+      const identity = (idSnap && idSnap.exists) ? idSnap.data() : {};
+      const name = ath.name || identity.name || ath.email || user.email;
+      const u = makeUser(name);
+      u.id = user.uid;
+      if (prof.objetivos) u.objetivos = prof.objetivos;
+      if (prof.rms) u.rms = prof.rms;
+      if (prof.metrics) u.metrics = prof.metrics;
+      users = [u];
+      activeUserId = u.id;
+
+      state.plans = plans;
+      state.checks = main.checks || {};
+      state.notes = main.notes || {};
+      state.seriesProgress = main.seriesProgress || {};
+      state.wo2x = main.wo2x || {};
+      userDataCache[u.id] = { plans: state.plans, checks: state.checks, notes: state.notes, seriesProgress: state.seriesProgress };
+      const sorted = [...state.plans].sort((a,b)=>a.uploadedAt-b.uploadedAt);
+      state.activePlanId = sorted.length ? sorted[sorted.length-1].id : null;
+      state.reviewDismissed = true;
+
+      try{ preferredVoiceURI = await storageGet(PREFERRED_VOICE_KEY); }catch(e){ preferredVoiceURI = null; }
+      try{ restTimerMuted = (await storageGet(REST_TIMER_MUTED_KEY)) === '1'; }catch(e){ restTimerMuted = false; }
+
+      clearInterval(bootTimer);
+      render();
+    }catch(e){
+      clearInterval(bootTimer);
+      console.error(e);
+      wo2ShowBootError('No se han podido cargar tus datos (' + (e.message || e.code || e) + ').');
+    }
+  });
+})();
+'''
+
+# ===== Aspecto "Pista en oro" (negro y oro, letra Archivo) =====
+# Hoja de estilos propia, cargada después de la de la app original.
+patch('</head>', '<link rel="stylesheet" href="palette.css?v=2">\n<link rel="stylesheet" href="theme-entreno.css?v=4">\n<meta name="theme-color" content="#0d1117">\n</head>')
+# Letra: Oswald/Inter de la original pasan a ArchivoBlack/Archivo (nombres sin espacios: van dentro de textos JS).
+html = html.replace("'Oswald'", "ArchivoBlack").replace('Oswald,', 'ArchivoBlack,').replace("'Inter'", "Archivo").replace('Inter,', 'Archivo,')
+# Botones pequeños (Notas, Informe, Añadir vídeo…): más grandes para el dedo.
+html = html.replace("font-weight:600;font-size:11.5px;padding:6px 11px;border-radius:8px", "font-weight:700;font-size:15px;padding:10px 14px;border-radius:12px;min-height:44px")
+html = html.replace("font-size:11px;padding:6px 10px;border-radius:8px", "font-size:15px;padding:10px 14px;border-radius:12px;min-height:44px")
+# Pesos ya marcados: se pintan enteros en oro.
+patch("    if (rinfo){ chip.style.cssText = 'border-left:5px solid '+rinfo.color+';'; }",
+      "    if (rinfo){ chip.style.cssText = 'border-left:5px solid '+rinfo.color+';'; chip.classList.add('done'); }")
+# Días completos: punto verde en el botón del día.
+patch("      plate.textContent = d;\n",
+      "      plate.textContent = d;\n      { const ds = dayStats(plan, d); if (ds.totalSets>0 && ds.checkedSets>=ds.totalSets) plate.classList.add('plate-done'); }\n")
+# Fechas de la semana (las pone el entrenador al subirla): en la cabecera y en cada día.
+patch("  left.appendChild(el('div','meta-line', metaBits.join(' · ') || 'Plan de entrenamiento'));",
+      "  if (plan.meta && plan.meta.startDate) metaBits.unshift(wo2WeekRange(plan.meta.startDate));\n  left.appendChild(el('div','meta-line', metaBits.join(' · ') || 'Plan de entrenamiento'));")
+patch("    btn.appendChild(el('div','plate-label', DAY_NAMES[d].slice(0,3)));",
+      "    btn.appendChild(el('div','plate-label', DAY_NAMES[d].slice(0,3) + wo2DayNum(plan, d)));")
+patch("</body>", """<script>
+// WorkOut 2.0: fechas de la semana (meta.startDate = lunes, 'AAAA-MM-DD')
+function wo2DayDate(plan, d){
+  if (!plan || !plan.meta || !plan.meta.startDate) return null;
+  const i = DAY_ORDER.indexOf(d); if (i < 0) return null;
+  const x = new Date(plan.meta.startDate + 'T12:00:00'); if (isNaN(x)) return null;
+  x.setDate(x.getDate() + i); return x;
+}
+function wo2DayNum(plan, d){ const x = wo2DayDate(plan, d); return x ? ' ' + x.getDate() : ''; }
+function wo2WeekRange(start){
+  const a = new Date(start + 'T12:00:00'), b = new Date(a); b.setDate(a.getDate() + 6);
+  return a.toLocaleDateString('es-ES', { day:'numeric', month:'short' }) + ' – ' + b.toLocaleDateString('es-ES', { day:'numeric', month:'short' });
+}
+</script>
+</body>""")
+
+# ===== Carga rápida en el móvil =====
+# Las librerías pesadas (leer Excel/PDF, reconocer texto, crear PDF) solo hacen
+# falta al subir archivos o generar informes: se descargan después de abrir.
+for tag in ['<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>\n',
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js"></script>\n',
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js"></script>\n',
+            '<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>\n']:
+    patch(tag, '')
+patch("</body>", """<script>
+// WorkOut 2.0: librerías pesadas en segundo plano, cuando la app ya se ve
+(function(){
+  var LIBS = ['https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',
+              'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.min.js',
+              'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.0/tesseract.min.js',
+              'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'];
+  function go(){
+    LIBS.forEach(function(src){
+      var s = document.createElement('script'); s.src = src; s.async = true;
+      if (src.indexOf('pdf.min.js') > 0) s.onload = function(){ if (window.pdfjsLib) window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.6.82/pdf.worker.min.js'; };
+      document.head.appendChild(s);
+    });
+  }
+  window.addEventListener('load', function(){ setTimeout(go, 1500); });
+})();
+</script>
+</body>""")
+
+# Fuentes de la app original (Oswald/Inter) ya no se usan: fuera la descarga que bloquea la carga.
+patch("@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap');\n", "")
+# Los extras (día no entrenado, pesos no hechos, traspasos y tabla de códigos) vienen ya
+# en la app original: se añadieron con tools/patch_original_extras.py.
+
+# Cambiar de perfil (administración / entrenador / atleta) sin volver a entrar
+patch('<script src="branding.js"></script>\n', '<script src="branding.js"></script>\n<script src="roles.js"></script>\n')
+# ===== Competiciones (calendario que crea el entrenador) =====
+patch("  sheet.appendChild(menuItem('📈', 'Análisis', ()=>{ state.showAnalytics=true; state.showMenu=false; render(); }));",
+      "  sheet.appendChild(menuItem('📈', 'Análisis', ()=>{ state.showAnalytics=true; state.showMenu=false; render(); }));\n  sheet.appendChild(menuItem('🏆', 'Competiciones', ()=>{ state.showComps=true; state.compOpen=null; state.showMenu=false; render(); }));")
+patch("  if (state.showAnalytics){\n",
+      "  if (state.showComps){\n    root.appendChild(wo2RenderCompsScreen());\n    return;\n  }\n  if (state.showAnalytics){\n")
+patch("  // day section\n  const section = el('div','day-section');\n",
+      "  // day section\n  const section = el('div','day-section');\n  wo2CompDayBlock(section, plan, state.activeDay);\n")
+patch("    } else {\n      plate.textContent = '+';\n    }\n",
+      "    } else {\n      plate.textContent = wo2CompsOn(plan, d).length ? '🏆' : '+';\n    }\n    if (wo2CompsOn(plan, d).length) plate.classList.add('plate-comp');\n")
+COMP_JS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'entreno_competiciones.js'), encoding='utf-8').read()
+patch("<script>\n// WorkOut 2.0: fechas de la semana", '<script src="competicion.js?v=1"></script>\n<script>\n' + COMP_JS + "\n</script>\n<script>\n// WorkOut 2.0: fechas de la semana")
+# Cambios del atleta: fondos oscuros.
+patch("  edited: { bg:'#fde9da', border:'#e07b39',", "  edited: { bg:'var(--t-chg-bg)', border:'var(--t-chg)',")
+patch("  added:  { bg:'#dff3e5', border:'#2e9a52',", "  added:  { bg:'var(--t-good-bg)', border:'var(--t-good)',")
+
+# ===== Vídeos de las series en Google Drive (los ve el entrenador y salen en el PDF) =====
+DRIVE_JS = open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'entreno_drive.js'), encoding='utf-8').read()
+DRIVE_JS += '\n' + open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'entreno_ia.js'), encoding='utf-8').read()
+patch("<script>\n// WorkOut 2.0: fechas de la semana",
+      '<script src="google-config.js?v=2"></script>\n<script>\n' + DRIVE_JS + "\n</script>\n<script>\n// WorkOut 2.0: fechas de la semana")
+# Análisis con IA: desactivado en WorkOut hasta tener un servidor con la clave
+patch("      vActions.appendChild(analyzeBtn); vActions.appendChild(delVBtn);", "      vActions.appendChild(delVBtn);")
+patch("  videoSection.appendChild(videoHeading);\n",
+      "  videoSection.appendChild(videoHeading);\n  wo2DriveCardList(videoSection, plan, day, idx);\n")
+patch("      videos.push({ id: 'v'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, url, analysis:null, formatWarning: looksLikeHevcMov });\n",
+      "      videos.push({ id: 'v'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, url, analysis:null, formatWarning: looksLikeHevcMov });\n      wo2DriveQueue(file, { planId: plan.id, day, exIdx: idx, label: entry.name || ('Código ' + entry.code) });\n")
+patch("function generateDayReport(plan, day){\n", "function generateDayReport(plan, day){\n  wo2ReportCtx = { planId: plan.id, day };\n")
+patch("function generateWeekReport(plan){\n", "function generateWeekReport(plan){\n  wo2ReportCtx = { planId: plan.id, day: null };\n")
+PDF_VIDEOS = """  { const vids = wo2VideosForPdf();
+    if (vids.length){
+      checkPageBreak(14);
+      sectionTitle('VIDEOS DE LAS SERIES', [201,154,46]);
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      vids.forEach(v=>{
+        checkPageBreak(7);
+        const lbl = stripEmojiForPDF(v.text);
+        doc.setTextColor(40,40,40); doc.text(lbl, marginX, y);
+        const x2 = Math.min(marginX + doc.getTextWidth(lbl) + 4, marginX + contentW - 22);
+        doc.setTextColor(30,100,200); doc.textWithLink('Ver video', x2, y, { url: v.link });
+        y += 6.5;
+        if (v.analysis){
+          doc.setFontSize(9); doc.setTextColor(70,70,70);
+          doc.splitTextToSize(stripEmojiForPDF('Analisis de tecnica (IA): ' + v.analysis), contentW - 4).forEach(l=>{ checkPageBreak(5); doc.text(l, marginX + 4, y); y += 4.4; });
+          doc.setFontSize(10); y += 2;
+        }
+      });
+      y += 3;
+    } }
+
+  const pageCount = doc.internal.getNumberOfPages();"""
+patch("  const pageCount = doc.internal.getNumberOfPages();", PDF_VIDEOS, 2)
+
+# Atleta: exportar sus entrenos en un archivo (para análisis de la evolución)
+patch("  if (WO2_ATHLETE && !WO2.coachView) sheet.appendChild(menuItem('🚪', 'Salir',",
+      "  if (WO2_ATHLETE && !WO2.coachView) sheet.appendChild(menuItem('📤', 'Exportar mis entrenos', ()=>{ state.showMenu = false; render(); wo2ExportMine(); }));\n"
+      "  if (WO2_ATHLETE && !WO2.coachView) sheet.appendChild(menuItem('🚪', 'Salir',")
+patch("async function buildBackupObject(){", r"""// Archivo con todos los entrenos del atleta (semanas, pesos, valoraciones,
+// notas, RPE, tiempos, días no entrenados y vídeos), para compartirlo.
+async function wo2ExportMine(){
+  let name = ''; try{ name = getActiveUser().name || ''; }catch(e){}
+  const data = { app:'WorkOut 2.0', tipo:'entrenos-atleta', exportedAt: new Date().toISOString(), atleta: name,
+    plans: state.plans || [], checks: state.checks || {}, notes: state.notes || {}, seriesProgress: state.seriesProgress || {},
+    wo2x: state.wo2x || {}, videos: (typeof WO2 !== 'undefined' && WO2.videos) || [] };
+  const fname = 'entrenos-' + (name || 'atleta').toLowerCase().normalize('NFD').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') + '-' + new Date().toISOString().slice(0,10) + '.json';
+  const blob = new Blob([JSON.stringify(data)], { type:'application/json' });
+  try{
+    const file = new File([blob], fname, { type:'application/json' });
+    if (navigator.canShare && navigator.canShare({ files:[file] })){ await navigator.share({ files:[file], title:'Mis entrenos' }); return; }
+  }catch(e){ if (e && e.name === 'AbortError') return; }
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+async function buildBackupObject(){""")
+
+patch('\ninitApp();\n</script>', '\n' + ADAPTER + '\n</script>')
+
+open(out_path, 'w', encoding='utf-8').write(html)
+print('entreno.html generado:', len(html), 'bytes')
